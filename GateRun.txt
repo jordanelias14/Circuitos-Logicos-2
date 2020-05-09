@@ -1,0 +1,96 @@
+module projeto(CLOCK_50, KEY0, KEY1, LED, GPIO0, GPIO1);
+	
+	input CLOCK_50;
+	input KEY0, KEY1;
+	output reg[7:0] LED = 8'b00000000; //setando todos os LEDS para 0 (desligando)
+	
+	reg[31:0] contador = 0; // iniciando contador para 0
+	reg novo_clock; //vamos criar um novo clock mais lento para assim deixar o acionamento dos leds numa velocidade visualmente aceitavel
+	reg[3:0] led_atual = 0; // iniciando o LED_ATUAL desligado
+	
+	reg botao_KEY0 = 1'b1;
+	reg botao_KEY1 = 1'b1;
+	
+	reg i = 1'b0;
+	
+	output GPIO0; 
+	output GPIO1;
+	
+	assign GPIO0 = ~(~botao_KEY0 & ~LED[7]);
+	assign GPIO1 = ~(~botao_KEY1 & LED[0]);
+	
+	
+/------------- NOVO CLOCK ------------------/	
+
+// neste always estamos criando um novo clock, diminuindo a velocidade de pulso
+
+always@(posedge CLOCK_50) begin
+	contador = contador + 1;
+	novo_clock=contador[24]; // controle da velocidade do novo clock
+end
+/--------------------------------------------/
+
+
+
+/-------- CONTROLANDO A BORDA DE DESCIDA DO BOTAO DE ABERTURA -----------------/
+
+// estamos vendo a borda de descida do botï¿½o, a cada acionamento vamos acionar os leds invertendo o que esta na variavel botao
+
+always@(negedge KEY0) begin
+	botao_KEY0 = ~botao_KEY0;
+end
+/------------------------------------------------------------------/
+
+
+
+
+
+/-------- CONTROLANDO A BORDA DE DESCIDA DO BOTAO DE FECHAMENTO -----------------/
+
+// estamos vendo a borda de descida do botï¿½o, a cada acionamento vamos acionar os leds invertendo o que esta na variavel botao
+
+always@(negedge KEY1) begin
+	botao_KEY1 = ~botao_KEY1;
+end
+/------------------------------------------------------------------/
+	
+	
+	
+/---------- CONTROLANDO O ACIONAMENTO DOS LEDS ----------------------/
+
+//estamos acionando os LEDS para que acendam em sequencia simulando a abertura de um portao
+	
+	always@(posedge novo_clock) begin
+	
+		if (botao_KEY0 == 0)begin //acionamento dos LEDS em sequencia simulando o fechamento do portao
+		
+			LED[led_atual]	= 1'b1;
+		
+				if (led_atual<7)begin
+				led_atual = led_atual+1;
+				end
+				
+				if (led_atual == 7) begin
+				botao_KEY0 = ~botao_KEY0;
+				end
+					
+		end
+		
+		if (botao_KEY1 == 0)begin //acionamento dos LEDS em sequencia simulando a abertura do portao
+		
+			LED[led_atual]	= 1'b0;
+			
+			if (led_atual>0)begin
+				led_atual = led_atual-1;
+				
+			end
+			if (led_atual == 0)begin
+				led_atual = 0;
+			end
+
+		end
+	
+/------------------------------------------------------------------/
+end
+	
+endmodule
